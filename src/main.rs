@@ -247,6 +247,8 @@ fn receive_message(
             let mut stdout_clone = stdout.clone();
             print_message(messages.clone(), &mut stdout_clone);
         }
+
+        buf.fill_with(Default::default);
     }
 }
 
