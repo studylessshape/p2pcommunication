@@ -24,7 +24,7 @@ fn main() {
     let local_addr = get_local_addr().unwrap();
     let socket = Arc::new(UdpSocket::bind(local_addr).unwrap());
 
-    let (id, ip) = initialize_iden(&mut stdout);
+    let (id, ip) = initialize_iden(&local_addr, &mut stdout);
 
     {
         let mut lock_stdout = stdout.lock().unwrap();
@@ -60,7 +60,7 @@ fn main() {
         let mut lock_stdout = stdout.lock().unwrap();
         queue!(*lock_stdout, terminal::Clear(ClearType::All),).unwrap();
     }
-    print_input(&input, &mut stdout);
+    print_input(&local_addr, &input, &mut stdout);
 
     loop {
         if poll(Duration::from_millis(10)).unwrap() {
@@ -79,15 +79,15 @@ fn main() {
                         push_message(format!("{}:\t{}", id, input_message), &mut messages);
                         input.clear();
                         print_message(imut_messages.clone(), &mut stdout);
-                        print_input(&input, &mut stdout);
+                        print_input(&local_addr, &input, &mut stdout);
                     }
                     KeyCode::Char(c) => {
                         input.push(c);
-                        print_input(&input, &mut stdout);
+                        print_input(&local_addr, &input, &mut stdout);
                     }
                     KeyCode::Backspace => {
                         input.pop();
-                        print_input(&input, &mut stdout);
+                        print_input(&local_addr, &input, &mut stdout);
                     }
                     _ => {}
                 };
@@ -104,7 +104,7 @@ fn main() {
 }
 
 /// Return `(id, target_ip)`
-fn initialize_iden(stdout: &mut Arc<Mutex<Stdout>>) -> (String, SocketAddr) {
+fn initialize_iden(local_ip: &SocketAddr, stdout: &mut Arc<Mutex<Stdout>>) -> (String, SocketAddr) {
     let mut id = String::new();
     let mut target_ip = String::new();
     let mut ip;
@@ -119,6 +119,7 @@ fn initialize_iden(stdout: &mut Arc<Mutex<Stdout>>) -> (String, SocketAddr) {
             cursor::MoveTo(0,0),
             cursor::Show
         ).unwrap();
+        println!("Your local ip: {}", local_ip.to_string());
         print!("Input your id > ");
         lock_stdout.flush().unwrap();
 
@@ -164,6 +165,7 @@ fn initialize_iden(stdout: &mut Arc<Mutex<Stdout>>) -> (String, SocketAddr) {
         println!("///////////Press \'Enter\' to ensure your profile, And \'ESC\' quit//////////");
         println!("\t\t\t\tYour id: {}", id);
         println!("\t\t\tTarget ip: {}", target_ip);
+        println!("\t\tYour local ip: {}", local_ip.to_string());
 
         lock_stdout.flush().unwrap();
 
@@ -213,7 +215,7 @@ fn print_message(messages: Arc<Mutex<VecDeque<String>>>, stdout: &mut Arc<Mutex<
     lock_stdout.flush().unwrap();
 }
 
-fn print_input(input: &String, stdout: &mut Arc<Mutex<Stdout>>) {
+fn print_input(local_ip: &SocketAddr ,input: &String, stdout: &mut Arc<Mutex<Stdout>>) {
     let mut lock_stdout = stdout.lock().unwrap();
     queue!(
         *lock_stdout,
@@ -222,7 +224,7 @@ fn print_input(input: &String, stdout: &mut Arc<Mutex<Stdout>>) {
     )
     .unwrap();
     println!("Input message: {}", input);
-
+    println!("\n(Your ip: {})", local_ip.to_string());
     lock_stdout.flush().unwrap();
 }
 
