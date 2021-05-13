@@ -1,4 +1,4 @@
-use std::io;
+use std::{io, usize};
 
 struct ProtocolID {
     protocol: String,
@@ -10,9 +10,9 @@ static mut PROTOCOL: ProtocolID = ProtocolID {
     id: String::new(),
 };
 
-const ID_LEN: u32 = 12;
-const PROTOCOL_LEN: u32 = 4;
-const CODE_LEN: u32 = 1;
+const ID_LEN: usize = 12;
+const PROTOCOL_LEN: usize = 4;
+const CODE_LEN: usize = 1;
 
 pub struct Message {
     code: u8,
@@ -24,38 +24,41 @@ pub struct Message {
 impl Message {
     pub fn parse(mes: &String) -> Result<Message, io::Error> {
         let message = Message {
-            code: mes[(ID_LEN + PROTOCOL_LEN) as usize..(ID_LEN + PROTOCOL_LEN + CODE_LEN) as usize].as_bytes()[0],
-            messaage: String::from(&mes[(ID_LEN+PROTOCOL_LEN+CODE_LEN) as usize..]),
-            pro_id: ProtocolID { 
-                protocol: String::from(&mes[..PROTOCOL_LEN as usize]),
-                id: Message::parse_id(
-                    &String::from(&mes[PROTOCOL_LEN as usize..(PROTOCOL_LEN + ID_LEN) as usize])
-                )
-             },
+            code: mes[(ID_LEN + PROTOCOL_LEN)..(ID_LEN + PROTOCOL_LEN + CODE_LEN)].as_bytes()[0],
+            messaage: String::from(&mes[(ID_LEN + PROTOCOL_LEN + CODE_LEN)..]),
+            pro_id: ProtocolID {
+                protocol: String::from(&mes[..PROTOCOL_LEN]),
+                id: Message::parse_id(&String::from(&mes[PROTOCOL_LEN..(PROTOCOL_LEN + ID_LEN)])),
+            },
         };
         let de_protocol = get_protocol().unwrap();
         if message.pro_id.protocol != de_protocol {
             Err(io::Error::new(
-                io::ErrorKind::InvalidData, 
-                "Protocol invalid"))
-        }else{
+                io::ErrorKind::InvalidData,
+                "Protocol invalid",
+            ))
+        } else {
             Ok(message)
         }
     }
 
     fn parse_id(raw_id: &String) -> String {
-        super::buf::push_message(raw_id);
         let mut id = String::new();
         let raw_id: Vec<char> = raw_id.chars().collect();
-        let mut index = 0;
-        for i in raw_id.len()-1..=0 {
-            if raw_id[i] != '0' {
-                index = i;
+        super::buf::push_message(&format!("{:?}", raw_id));
+        let mut index = (raw_id.len() - 1) as i32;
+        while index >= 0 {
+            if raw_id[index as usize] != '0' {
+                break;
             }
-        };
-        
-        for i in 0..=index {
-            id.push(raw_id[i]);
+            index -= 1;
+        }
+
+        super::buf::push_message(&format!("index: {}", index));
+        if index >= 0 {
+            for i in 0..=index as usize {
+                id.push(raw_id[i]);
+            }
         }
         id
     }
@@ -78,7 +81,7 @@ pub fn set_id(id: &String) {
         let mut id = id.clone();
         if id.len() < ID_LEN as usize {
             let len = id.len();
-            for _ in 0..(ID_LEN as usize-len) {
+            for _ in 0..(ID_LEN as usize - len) {
                 id.push('0');
             }
         }
