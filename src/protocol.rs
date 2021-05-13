@@ -1,8 +1,9 @@
 use std::{io, usize};
 
-struct ProtocolID {
-    protocol: String,
-    id: String,
+#[derive(Clone)]
+pub struct ProtocolID {
+    pub protocol: String,
+    pub id: String,
 }
 
 static mut PROTOCOL: ProtocolID = ProtocolID {
@@ -10,18 +11,28 @@ static mut PROTOCOL: ProtocolID = ProtocolID {
     id: String::new(),
 };
 
-const ID_LEN: usize = 12;
-const PROTOCOL_LEN: usize = 4;
-const CODE_LEN: usize = 1;
+pub const ID_LEN: usize = 12;
+pub const PROTOCOL_LEN: usize = 4;
+pub const CODE_LEN: usize = 1;
 
 pub struct Message {
-    code: u8,
-    messaage: String,
-    pro_id: ProtocolID,
+    pub code: u8,
+    pub messaage: String,
+    pub pro_id: ProtocolID,
 }
-// MOYU000000000000o1231323
-// 0..4..17..18..
+
 impl Message {
+    pub fn new(
+        code: u8,
+        messa: &String
+    ) -> Message {
+        Message {
+            code,
+            messaage: messa.clone(),
+            pro_id: unsafe {PROTOCOL.clone()}
+        }
+    }
+
     pub fn parse(mes: &String) -> Result<Message, io::Error> {
         let message = Message {
             code: mes[(ID_LEN + PROTOCOL_LEN)..(ID_LEN + PROTOCOL_LEN + CODE_LEN)].as_bytes()[0],
@@ -61,6 +72,10 @@ impl Message {
             }
         }
         id
+    }
+
+    pub fn to_buf(&self) -> Vec<u8> {
+        format!("{}{}{}{}", self.pro_id.protocol, self.pro_id.id, self.code, self.messaage).bytes().collect()
     }
 }
 
