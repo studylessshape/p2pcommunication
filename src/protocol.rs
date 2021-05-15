@@ -15,6 +15,7 @@ pub const ID_LEN: usize = 12;
 pub const PROTOCOL_LEN: usize = 4;
 pub const CODE_LEN: usize = 1;
 
+#[derive(Clone)]
 pub struct Message {
     pub code: u8,
     pub messaage: String,
@@ -53,10 +54,9 @@ impl Message {
         }
     }
 
-    fn parse_id(raw_id: &String) -> String {
+    pub fn parse_id(raw_id: &String) -> String {
         let mut id = String::new();
         let raw_id: Vec<char> = raw_id.chars().collect();
-        super::buf::push_message(&format!("{:?}", raw_id));
         let mut index = (raw_id.len() - 1) as i32;
         while index >= 0 {
             if raw_id[index as usize] != '0' {
@@ -65,7 +65,6 @@ impl Message {
             index -= 1;
         }
 
-        super::buf::push_message(&format!("index: {}", index));
         if index >= 0 {
             for i in 0..=index as usize {
                 id.push(raw_id[i]);
@@ -85,9 +84,9 @@ impl ToString for Message {
     }
 }
 
-pub fn set_protocol(protocol: &String) {
+pub fn set_protocol(protocol: String) {
     unsafe {
-        PROTOCOL.protocol = protocol.clone();
+        PROTOCOL.protocol = protocol;
     }
 }
 

@@ -16,8 +16,14 @@ pub fn initialize() {
     enter_alternate_screen();
 }
 
-pub fn clear_buf() {
+pub fn reset() {
+    clear_buf();
     leave_alternate_screen();
+}
+
+pub fn clear_buf() {
+    let mut lock_messages = MESSAGES.lock().unwrap();
+    lock_messages.clear();
 }
 
 pub fn enter_alternate_screen() {
@@ -70,4 +76,11 @@ pub fn push_message(message: &String) {
         lock_message.pop_front();
     }
     lock_message.push_back(message.clone());
+}
+
+pub fn print_error<E:ToString>(err: &E) {
+    reset();
+    let mut stdout = io::stdout();
+    println!("{}", err.to_string());
+    stdout.flush().unwrap();
 }
