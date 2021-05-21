@@ -11,28 +11,46 @@ use crate::protocol::Message;
 
 use super::protocol;
 
-#[derive(PartialEq, Clone, Copy)]
+#[derive(PartialEq, Clone, Copy, Debug)]
 pub enum Identity {
     None,
     RoomOwner,
     RooomJoiner,
 }
+
+impl Identity {
+    pub fn is_room_owner(&self) -> bool {
+        *self == Identity::RoomOwner
+    }
+
+    pub fn is_room_joiner(&self) -> bool {
+        *self == Identity::RooomJoiner
+    }
+}
+
 #[repr(u8)]
-enum Code {
-    Search = 0,
-    Request,
+#[derive(Debug)]
+pub enum Code {
+    Request = 0,
     Reply,
     Message,
+    Exit,
+    None,
 }
 
 impl From<u8> for Code {
     fn from(code: u8) -> Self {
-        unsafe { mem::transmute(code) }
+        if code <= 2 {
+            unsafe { mem::transmute(code) }
+        } else {
+            Code::None
+        }
     }
 }
 
 static mut IDENTITY: Identity = Identity::None;
 static mut KEY: String = String::new();
+static mut ROOM_OWNER_IP: String = String::new();
 pub const JOIN_SUCCESS: &'static str = "Success join room";
 pub const JOIN_FAILED: &'static str = "Error key";
 
@@ -42,10 +60,8 @@ pub fn set_identity(identity: Identity) {
     }
 }
 
-pub fn get_identity() -> Identity{
-    unsafe {
-        IDENTITY
-    }
+pub fn get_identity() -> Identity {
+    unsafe { IDENTITY }
 }
 
 pub fn get_key() -> String {
@@ -58,7 +74,7 @@ pub fn is_room_owner() -> bool {
 
 pub fn set_key(key: String) {
     unsafe {
-        KEY = key;
+        KEY = key.clone();
     }
 }
 
@@ -68,36 +84,31 @@ pub fn receive(socket: Arc<UdpSocket>, mess_que: Arc<Mutex<VecDeque<protocol::Me
 
     loop {
         if let Ok((_, addr)) = socket.recv_from(&mut buf) {
-            let message = match protocol::Message::parse(&String::from_utf8_lossy(&buf).to_string()) {
+            let message = match protocol::Message::parse(&String::from_utf8_lossy(&buf).to_string())
+            {
                 Ok(mes) => mes,
                 Err(_) => continue,
             };
             let code = Code::from(message.code);
             match code {
-                Code::Search => {
-                    receive_search(addr, socket.clone());
-                }
                 Code::Request => {
                     receive_request(&message, mess_que.clone(), addr, &mut ips, socket.clone());
-                }
+                },
                 Code::Reply => {
-                    receive_reply(&message, &mut ips, addr ,mess_que.clone());
-                }
+                    receive_reply(&message, &mut ips, addr, mess_que.clone());
+                },
                 Code::Message => {
                     receive_message(&message, mess_que.clone(), &ips, socket.clone());
-                }
+                },
+                Code::Exit => {
+                    if is_room_owner() && addr != socket.local_addr().unwrap() {
+                        ips.remove(find_ip(&addr, &ips).unwrap());
+                    }
+                },
+                _ => {}
             };
+            buf.fill_with(Default::default);
         }
-    }
-}
-
-fn receive_search(addr: SocketAddr, socket: Arc<UdpSocket>) {
-    if is_room_owner() {
-        send_message_to(
-            &protocol::Message::new(Code::Reply as u8, &protocol::get_id().unwrap()),
-            &addr,
-            socket.clone(),
-        );
     }
 }
 
@@ -115,7 +126,7 @@ fn receive_request(
 ) {
     if is_room_owner() {
         // Compare key
-        if message.messaage == get_key() {
+        if is_key(message.messaage.clone()) {
             // Send to this ip with join success message
             send_message_to(
                 &protocol::Message::new(Code::Reply as u8, &String::from(JOIN_SUCCESS)),
@@ -123,18 +134,20 @@ fn receive_request(
                 socket.clone(),
             );
             // Let this ip join the ip list
-            ips.push(addr);
-            let join_message = Message {
-                code: Code::Message as u8,
-                messaage: JOIN_SUCCESS.bold().red().to_string(),
-                pro_id: protocol::ProtocolID {
-                    id: message.pro_id.id.clone(),
-                    protocol: protocol::get_protocol().unwrap(),
-                },
-            };
-            push_to_message_queue(&join_message, mess_que);
+            if !is_joined_room(&addr, ips) {
+                let join_message = Message {
+                    code: Code::Message as u8,
+                    messaage: JOIN_SUCCESS.red().bold().to_string(),
+                    pro_id: protocol::ProtocolID {
+                        id: message.pro_id.id.clone(),
+                        protocol: protocol::get_protocol().unwrap(),
+                    },
+                };
+                push_into_ips(&addr, ips);
+                push_to_message_queue(&join_message, mess_que);
+                send_message_to_all(&join_message, ips, socket);
+            }
             // Send the join message to all ip
-            send_message_to_all(&join_message, ips, socket);
         } else {
             send_message_to(
                 &protocol::Message::new(Code::Reply as u8, &String::from(JOIN_FAILED)),
@@ -145,10 +158,32 @@ fn receive_request(
     }
 }
 
-fn receive_reply(message: &protocol::Message, ips: &mut Vec<SocketAddr>, addr: SocketAddr, mess_que: Arc<Mutex<VecDeque<protocol::Message>>>) {
-    if !is_room_owner(){
+fn is_key(key: String) -> bool {
+    let mut chars = key.chars();
+    for c in get_key().chars() {
+        if let Some(ch) = chars.next() {
+            if ch != c {
+                return false;
+            }
+        } else {
+            return false;
+        }
+    }
+    return true;
+}
+
+fn receive_reply(
+    message: &protocol::Message,
+    ips: &mut Vec<SocketAddr>,
+    addr: SocketAddr,
+    mess_que: Arc<Mutex<VecDeque<protocol::Message>>>,
+) {
+    if !is_room_owner() {
         if message.messaage == JOIN_SUCCESS {
-            ips.push(addr);
+            push_into_ips(&addr, ips);
+            unsafe {
+                ROOM_OWNER_IP = addr.to_string();
+            }
         }
         push_to_message_queue(message, mess_que);
     }
@@ -177,13 +212,15 @@ fn push_to_message_queue(
     lock_messages.push_back(message.clone());
 }
 
-fn send_message_to(message: &protocol::Message, addr: &SocketAddr, socket: Arc<UdpSocket>) {
+pub fn send_message_to(message: &protocol::Message, addr: &SocketAddr, socket: Arc<UdpSocket>) {
     socket.send_to(&message.to_buf(), addr).unwrap();
 }
 
 fn send_message_to_all(message: &protocol::Message, ips: &Vec<SocketAddr>, socket: Arc<UdpSocket>) {
     for ip in ips.iter() {
-        send_message_to(&message, ip, socket.clone());
+        if socket.local_addr().unwrap().to_string() != ip.to_string() {
+            send_message_to(&message, ip, socket.clone());
+        }
     }
 }
 
@@ -194,4 +231,36 @@ pub fn get_local_addr() -> io::Result<SocketAddr> {
     socket.connect("8.8.8.8:80")?;
 
     socket.local_addr()
+}
+
+fn push_into_ips(ip: &SocketAddr, ips: &mut Vec<SocketAddr>) -> bool {
+    if is_joined_room(ip, ips) {
+        return false;
+    }
+    ips.push(ip.clone());
+    true
+}
+
+fn is_joined_room(ip: &SocketAddr, ips: &Vec<SocketAddr>) -> bool {
+    if !is_room_owner() {
+        unsafe {
+            return ROOM_OWNER_IP == ip.to_string();
+        }
+    }
+    for i_ip in ips.iter() {
+        if ip.to_string() == i_ip.to_string() {
+            return true;
+        }
+    }
+    false
+}
+
+
+fn find_ip(ip: &SocketAddr, ips: &Vec<SocketAddr>) -> Option<usize> {
+    for index in 0..ips.len() {
+        if ip.to_string() == ips[index].to_string() {
+            return Some(index);
+        }
+    }
+    None
 }

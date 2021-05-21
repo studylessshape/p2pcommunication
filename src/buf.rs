@@ -1,4 +1,8 @@
-use std::{collections::VecDeque, io::{self, Write}, sync::Mutex};
+use std::{
+    collections::VecDeque,
+    io::{self, Write},
+    sync::Mutex,
+};
 
 use crossterm::{
     cursor, queue,
@@ -6,11 +10,10 @@ use crossterm::{
 };
 
 const MESSAGE_BUF: u16 = 20;
-const INPUT_BUF: u16 = 22;
 
-lazy_static!(
+lazy_static! {
     static ref MESSAGES: Mutex<VecDeque<String>> = Mutex::new(VecDeque::new());
-);
+}
 
 pub fn initialize() {
     enter_alternate_screen();
@@ -44,9 +47,9 @@ pub fn print_message() {
         stdout,
         cursor::MoveTo(0, MESSAGE_BUF),
         terminal::Clear(ClearType::FromCursorUp),
-        cursor::MoveTo(0, 0),
     )
     .unwrap();
+    queue!(stdout, cursor::MoveTo(0, 0)).unwrap();
 
     let lock_messages = MESSAGES.lock().unwrap();
 
@@ -57,16 +60,28 @@ pub fn print_message() {
     stdout.flush().unwrap();
 }
 
-pub fn print_input(input: &String) {
+pub fn println(s: &String, line: u16) {
     let mut stdout = io::stdout();
     queue!(
         stdout,
-        cursor::MoveTo(0, INPUT_BUF),
+        cursor::MoveTo(0, line),
+        terminal::Clear(ClearType::CurrentLine),
+    )
+    .unwrap();
+    println!("{}", s);
+    stdout.flush().unwrap();
+}
+
+pub fn print_input(head: &String, input: &String, line: u16) {
+    let mut stdout = io::stdout();
+    queue!(
+        stdout,
+        cursor::MoveTo(0, line),
         terminal::Clear(ClearType::CurrentLine),
     )
     .unwrap();
 
-    println!("Input to send: {}", input);
+    println!("{}{}", head, input);
     stdout.flush().unwrap();
 }
 
@@ -78,9 +93,19 @@ pub fn push_message(message: &String) {
     lock_message.push_back(message.clone());
 }
 
-pub fn print_error<E:ToString>(err: &E) {
+pub fn print_error<E: ToString>(err: &E) {
     reset();
     let mut stdout = io::stdout();
     println!("{}", err.to_string());
     stdout.flush().unwrap();
+}
+
+pub fn clear_all() {
+    let mut stdout = io::stdout();
+    queue!(
+        stdout,
+        terminal::Clear(ClearType::All),
+        cursor::MoveTo(0, 0)
+    )
+    .unwrap();
 }

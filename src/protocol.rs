@@ -1,6 +1,6 @@
 use std::{io, usize};
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct ProtocolID {
     pub protocol: String,
     pub id: String,
@@ -15,7 +15,7 @@ pub const ID_LEN: usize = 12;
 pub const PROTOCOL_LEN: usize = 4;
 pub const CODE_LEN: usize = 1;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Message {
     pub code: u8,
     pub messaage: String,
@@ -36,11 +36,11 @@ impl Message {
 
     pub fn parse(mes: &String) -> Result<Message, io::Error> {
         let message = Message {
-            code: mes[(ID_LEN + PROTOCOL_LEN)..(ID_LEN + PROTOCOL_LEN + CODE_LEN)].as_bytes()[0],
-            messaage: String::from(&mes[(ID_LEN + PROTOCOL_LEN + CODE_LEN)..]),
+            code: Message::parse_code(String::from(&mes[(ID_LEN + PROTOCOL_LEN)..(ID_LEN + PROTOCOL_LEN + CODE_LEN)])),
+            messaage: String::from(&mes[(ID_LEN + PROTOCOL_LEN + CODE_LEN)..]).trim_end().trim_start().to_string(),
             pro_id: ProtocolID {
                 protocol: String::from(&mes[..PROTOCOL_LEN]),
-                id: Message::parse_id(&String::from(&mes[PROTOCOL_LEN..(PROTOCOL_LEN + ID_LEN)])),
+                id: String::from(&mes[PROTOCOL_LEN..(PROTOCOL_LEN + ID_LEN)]),
             },
         };
         let de_protocol = get_protocol().unwrap();
@@ -76,11 +76,38 @@ impl Message {
     pub fn to_buf(&self) -> Vec<u8> {
         format!("{}{}{}{}", self.pro_id.protocol, self.pro_id.id, self.code, self.messaage).bytes().collect()
     }
+
+    fn parse_code(s_code: String) -> u8 {
+        if s_code.len() > 2 {
+            return 0;
+        }
+        match s_code.chars().next() {
+            Some(c) => {
+                if c >= '0' || c <= '9' {
+                    match c {
+                        '0' => return 0,
+                        '1' => return 1,
+                        '2' => return 2,
+                        '3' => return 3,
+                        '4' => return 4,
+                        '5' => return 5,
+                        '6' => return 6,
+                        '7' => return 7,
+                        '8' => return 8,
+                        '9' => return 9,
+                        _=> return 0
+                    }
+                }
+                return 0;
+            },
+            None => return 0,
+        }
+    }
 }
 
 impl ToString for Message {
     fn to_string(&self) -> String {
-        format!("{}:\t{}", self.pro_id.id, self.messaage)
+        format!("{}:\t{}", Message::parse_id(&self.pro_id.id), self.messaage)
     }
 }
 
