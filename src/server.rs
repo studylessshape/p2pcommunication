@@ -102,7 +102,6 @@ pub fn receive(socket: Arc<UdpSocket>, mess_que: Arc<Mutex<VecDeque<protocol::Me
                     receive_message(&message, mess_que.clone(), &ips, socket.clone());
                 },
                 Code::Exit => {
-                    buf::println(&String::from("Exit"), 27);
                     receive_exit(&message, addr, mess_que.clone(), &mut ips, socket.clone());
                 },
                 _ => {}
