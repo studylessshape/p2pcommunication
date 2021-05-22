@@ -7,7 +7,7 @@ use std::{
 
 use crossterm::style::{Colorize, Styler};
 
-use crate::protocol::Message;
+use crate::{buf, protocol::Message};
 
 use super::protocol;
 
@@ -31,16 +31,16 @@ impl Identity {
 #[repr(u8)]
 #[derive(Debug)]
 pub enum Code {
-    Request = 0,
+    None = 0,
+    Request,
     Reply,
     Message,
     Exit,
-    None,
 }
 
 impl From<u8> for Code {
     fn from(code: u8) -> Self {
-        if code <= 2 {
+        if code <= 4 {
             unsafe { mem::transmute(code) }
         } else {
             Code::None
@@ -53,6 +53,7 @@ static mut KEY: String = String::new();
 static mut ROOM_OWNER_IP: String = String::new();
 pub const JOIN_SUCCESS: &'static str = "Success join room";
 pub const JOIN_FAILED: &'static str = "Error key";
+pub const EXIT_ROOM: &'static str = "Exit room";
 
 pub fn set_identity(identity: Identity) {
     unsafe {
@@ -101,13 +102,13 @@ pub fn receive(socket: Arc<UdpSocket>, mess_que: Arc<Mutex<VecDeque<protocol::Me
                     receive_message(&message, mess_que.clone(), &ips, socket.clone());
                 },
                 Code::Exit => {
-                    if is_room_owner() && addr != socket.local_addr().unwrap() {
-                        ips.remove(find_ip(&addr, &ips).unwrap());
-                    }
+                    buf::println(&String::from("Exit"), 27);
+                    receive_exit(&message, addr, mess_que.clone(), &mut ips, socket.clone());
                 },
                 _ => {}
             };
-            buf.fill_with(Default::default);
+            // buf.fill_with(Default::default);
+            buf.fill(Default::default());
         }
     }
 }
@@ -137,7 +138,7 @@ fn receive_request(
             if !is_joined_room(&addr, ips) {
                 let join_message = Message {
                     code: Code::Message as u8,
-                    messaage: JOIN_SUCCESS.red().bold().to_string(),
+                    messaage: JOIN_SUCCESS.green().bold().to_string(),
                     pro_id: protocol::ProtocolID {
                         id: message.pro_id.id.clone(),
                         protocol: protocol::get_protocol().unwrap(),
@@ -201,6 +202,23 @@ fn receive_message(
     push_to_message_queue(message, mess_que);
     if is_room_owner() {
         send_message_to_all(message, ips, socket);
+    }
+}
+
+fn receive_exit(
+    message: &protocol::Message,
+    addr: SocketAddr, 
+    mess_que: Arc<Mutex<VecDeque<protocol::Message>>>,
+    ips: &mut Vec<SocketAddr>,
+    socket: Arc<UdpSocket>
+) {
+    let mut message = message.clone();
+    message.code = Code::Message as u8;
+    push_to_message_queue(&message, mess_que);
+    if is_room_owner() && addr != socket.local_addr().unwrap() {
+        buf::println(&String::from("Exit"), 27);
+        ips.remove(find_ip(&addr, &ips).unwrap());
+        send_message_to_all(&message, ips, socket);
     }
 }
 

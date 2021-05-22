@@ -3,6 +3,7 @@ use crossterm::{
     cursor,
     event::{self, Event, KeyCode, KeyEvent},
     queue,
+    style::{Colorize, Styler},
     terminal::{self, ClearType},
 };
 use std::{
@@ -178,7 +179,8 @@ fn join_room(
                 Some(message) => {
                     if compare_string(&message.messaage, &String::from(server::JOIN_SUCCESS)) {
                         break true;
-                    } else if compare_string(&message.messaage, &String::from(server::JOIN_FAILED)) {
+                    } else if compare_string(&message.messaage, &String::from(server::JOIN_FAILED))
+                    {
                         break false;
                     }
                 }
@@ -341,7 +343,10 @@ fn communication(
                         if input.len() > 0 {
                             if input == EXIT_COMMAND {
                                 server::send_message_to(
-                                    &protocol::Message::new(server::Code::Exit as u8, &input),
+                                    &protocol::Message::new(
+                                        server::Code::Exit as u8,
+                                        &server::EXIT_ROOM.clone().red().bold().to_string(),
+                                    ),
                                     &send_addr,
                                     socket.clone(),
                                 );
