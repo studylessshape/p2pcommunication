@@ -63,7 +63,12 @@ fn input_identity() -> String {
         loop {
             match io::stdin().read_line(&mut id) {
                 Ok(_) => {
-                    id = id.trim_end().trim_start().to_string();
+                    let len = if protocol::ID_LEN > id.len() {
+                        id.len()
+                    } else {
+                        protocol::ID_LEN
+                    };
+                    id = id[..len].trim_end().trim_start().to_string();
                 }
                 Err(e) => {
                     buf::print_error(&e);
