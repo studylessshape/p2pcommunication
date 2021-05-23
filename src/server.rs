@@ -215,7 +215,6 @@ fn receive_exit(
     message.code = Code::Message as u8;
     push_to_message_queue(&message, mess_que);
     if is_room_owner() && addr != socket.local_addr().unwrap() {
-        buf::println(&String::from("Exit"), 27);
         ips.remove(find_ip(&addr, &ips).unwrap());
         send_message_to_all(&message, ips, socket);
     }
