@@ -38,7 +38,7 @@ pub enum Code {
 
 impl From<u8> for Code {
     fn from(code: u8) -> Self {
-        if code <= 4 {
+        if code <= Code::Exit as u8 {
             unsafe { mem::transmute(code) }
         } else {
             Code::None

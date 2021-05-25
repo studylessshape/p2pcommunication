@@ -388,6 +388,6 @@ fn get_new_message(mess_que: Arc<Mutex<VecDeque<protocol::Message>>>) -> Option<
 fn exit_client(code: i32) {
     buf::reset();
     let mut stdout = io::stdout();
-    queue!(stdout, cursor::Show);
+    queue!(stdout, cursor::Show).unwrap();
     exit(code);
 }
