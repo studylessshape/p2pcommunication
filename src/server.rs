@@ -83,7 +83,7 @@ pub fn receive(socket: Arc<UdpSocket>, mess_que: Arc<Mutex<VecDeque<protocol::Me
 
     loop {
         if let Ok((_, addr)) = socket.recv_from(&mut buf) {
-            let message = match protocol::Message::parse(&String::from_utf8_lossy(&buf).to_string())
+            let message = match protocol::Message::parse(&buf)
             {
                 Ok(mes) => mes,
                 Err(_) => continue,
@@ -124,7 +124,7 @@ fn receive_request(
 ) {
     if is_room_owner() {
         // Compare key
-        if is_key(message.messaage.clone()) {
+        if is_key(message.message.clone()) {
             // Send to this ip with join success message
             send_message_to(
                 &protocol::Message::new(Code::Reply as u8, &String::from(JOIN_SUCCESS)),
@@ -135,7 +135,7 @@ fn receive_request(
             if !is_joined_room(&addr, ips) {
                 let join_message = protocol::Message {
                     code: Code::Message as u8,
-                    messaage: JOIN_SUCCESS.green().bold().to_string(),
+                    message: JOIN_SUCCESS.green().bold().to_string(),
                     pro_id: protocol::ProtocolID {
                         id: message.pro_id.id.clone(),
                         protocol: protocol::get_protocol().unwrap(),
@@ -177,7 +177,7 @@ fn receive_reply(
     mess_que: Arc<Mutex<VecDeque<protocol::Message>>>,
 ) {
     if !is_room_owner() {
-        if message.messaage == JOIN_SUCCESS {
+        if message.message == JOIN_SUCCESS {
             push_into_ips(&addr, ips);
             unsafe {
                 ROOM_OWNER_IP = addr.to_string();

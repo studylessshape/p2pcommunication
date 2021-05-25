@@ -169,7 +169,7 @@ fn join_room(
         let room_addr = input_ip();
 
         let key = input_key();
-        request_message.messaage = key;
+        request_message.message = key;
         print!("Join");
 
         let mut loading_count = 0;
@@ -182,9 +182,9 @@ fn join_room(
 
             match lock_mess_que.pop_front() {
                 Some(message) => {
-                    if compare_string(&message.messaage, &String::from(server::JOIN_SUCCESS)) {
+                    if compare_string(&message.message, &String::from(server::JOIN_SUCCESS)) {
                         break true;
-                    } else if compare_string(&message.messaage, &String::from(server::JOIN_FAILED))
+                    } else if compare_string(&message.message, &String::from(server::JOIN_FAILED))
                     {
                         break false;
                     }
@@ -387,5 +387,7 @@ fn get_new_message(mess_que: Arc<Mutex<VecDeque<protocol::Message>>>) -> Option<
 
 fn exit_client(code: i32) {
     buf::reset();
+    let mut stdout = io::stdout();
+    queue!(stdout, cursor::Show);
     exit(code);
 }
