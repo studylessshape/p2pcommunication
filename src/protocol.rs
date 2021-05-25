@@ -113,7 +113,14 @@ impl ToString for Message {
 
 pub fn set_protocol(protocol: String) {
     unsafe {
-        PROTOCOL.protocol = protocol;
+        if protocol.len() >= PROTOCOL_LEN {
+            PROTOCOL.protocol = protocol[..PROTOCOL_LEN].to_string();
+        }else{
+            PROTOCOL.protocol = protocol;
+            for _ in 0..PROTOCOL_LEN-PROTOCOL.protocol.len() {
+                PROTOCOL.protocol.push('0');
+            }
+        }
     }
 }
 

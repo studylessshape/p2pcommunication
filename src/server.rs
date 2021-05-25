@@ -7,9 +7,7 @@ use std::{
 
 use crossterm::style::{Colorize, Styler};
 
-use crate::{buf, protocol::Message};
-
-use super::protocol;
+use crate::prelude::*;
 
 #[derive(PartialEq, Clone, Copy, Debug)]
 pub enum Identity {
@@ -135,7 +133,7 @@ fn receive_request(
             );
             // Let this ip join the ip list
             if !is_joined_room(&addr, ips) {
-                let join_message = Message {
+                let join_message = protocol::Message {
                     code: Code::Message as u8,
                     messaage: JOIN_SUCCESS.green().bold().to_string(),
                     pro_id: protocol::ProtocolID {
