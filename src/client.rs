@@ -76,6 +76,8 @@ fn input_identity() -> String {
             }
             if id == EXIT_COMMAND {
                 exit_client(0);
+            } else if id.len() <= 0 {
+                id = "None".to_string();
             }
             protocol::set_id(&id);
 
@@ -181,10 +183,9 @@ fn join_room(
 
             match lock_mess_que.pop_front() {
                 Some(message) => {
-                    if compare_string(&message.message, &String::from(server::JOIN_SUCCESS)) {
+                    if message.message == server::JOIN_SUCCESS.to_string() {
                         break true;
-                    } else if compare_string(&message.message, &String::from(server::JOIN_FAILED))
-                    {
+                    } else if message.message == server::JOIN_FAILED.to_string() {
                         break false;
                     }
                 }
@@ -205,20 +206,6 @@ fn join_room(
         stdout.flush().unwrap();
         thread::sleep(Duration::from_secs_f32(2.0));
     }
-}
-
-fn compare_string(lhs: &String, rhs: &String) -> bool {
-    let mut chars = lhs.chars();
-    for c in rhs.chars() {
-        if let Some(ch) = chars.next() {
-            if ch != c {
-                return false;
-            }
-        } else {
-            return false;
-        }
-    }
-    return true;
 }
 
 fn input_ip() -> SocketAddr {

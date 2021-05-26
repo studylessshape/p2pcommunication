@@ -123,7 +123,9 @@ fn receive_request(
 ) {
     if is_room_owner() {
         // Compare key
-        if compare_string(&message.message, &get_key()) {
+        // buf::println(&format!("{}:{}", get_key().len(), get_key()), 26);
+        // if compare_string(&message.message, &get_key()) {
+        if message.message == get_key() {
             // Send to this ip with join success message
             send_message_to(
                 &protocol::Message::new(Code::Reply as u8, &String::from(JOIN_SUCCESS)),
@@ -145,7 +147,8 @@ fn receive_request(
                 send_message_to_all(&join_message, ips, socket);
             }
             // Send the join message to all ip
-        } else if compare_string(&message.message, &EXIT_ROOM.to_string()) {
+        // } else if compare_string(&message.message, &EXIT_ROOM.to_string()) {
+        } else if message.message == EXIT_ROOM.to_string() {
             receive_exit(message, addr, mess_que, ips, socket);
         } else {
             send_message_to(
@@ -155,20 +158,6 @@ fn receive_request(
             );
         }
     }
-}
-
-fn compare_string(lhs: &String, rhs: &String) -> bool {
-    let mut chars = lhs.chars();
-    for c in rhs.chars() {
-        if let Some(ch) = chars.next() {
-            if ch != c {
-                return false;
-            }
-        } else {
-            return false;
-        }
-    }
-    return true;
 }
 
 fn receive_reply(

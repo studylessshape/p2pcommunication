@@ -23,24 +23,22 @@ pub struct Message {
 }
 
 impl Message {
-    pub fn new(
-        code: u8,
-        messa: &String
-    ) -> Message {
+    pub fn new(code: u8, messa: &String) -> Message {
         Message {
             code,
             message: messa.clone(),
-            pro_id: unsafe {PROTOCOL.clone()}
+            pro_id: unsafe { PROTOCOL.clone() },
         }
     }
 
     pub fn parse(mes: &[u8]) -> Result<Message, io::Error> {
         let message = Message {
             code: mes[(ID_LEN + PROTOCOL_LEN)],
-            message: String::from_utf8_lossy(&mes[(ID_LEN + PROTOCOL_LEN + CODE_LEN)..]).trim_end().trim_start().to_string(),
+            message: Message::trim_message(&mes[(ID_LEN + PROTOCOL_LEN + CODE_LEN)..]),
             pro_id: ProtocolID {
                 protocol: String::from_utf8_lossy(&mes[..PROTOCOL_LEN]).to_string(),
-                id: String::from_utf8_lossy(&mes[PROTOCOL_LEN..(PROTOCOL_LEN + ID_LEN)]).to_string(),
+                id: String::from_utf8_lossy(&mes[PROTOCOL_LEN..(PROTOCOL_LEN + ID_LEN)])
+                    .to_string(),
             },
         };
         let de_protocol = get_protocol().unwrap();
@@ -87,6 +85,15 @@ impl Message {
             target.push(c);
         }
     }
+
+    fn trim_message(src: &[u8]) -> String {
+        let mut first = 0;
+        while first < src.len() && src[first] != b'\0' {
+            first += 1;
+        }
+
+        String::from_utf8_lossy(&src[..first]).to_string()
+    }
 }
 
 impl ToString for Message {
@@ -99,9 +106,9 @@ pub fn set_protocol(protocol: String) {
     unsafe {
         if protocol.len() >= PROTOCOL_LEN {
             PROTOCOL.protocol = protocol[..PROTOCOL_LEN].to_string();
-        }else{
+        } else {
             PROTOCOL.protocol = protocol;
-            for _ in 0..PROTOCOL_LEN-PROTOCOL.protocol.len() {
+            for _ in 0..PROTOCOL_LEN - PROTOCOL.protocol.len() {
                 PROTOCOL.protocol.push('\0');
             }
         }
