@@ -59,7 +59,7 @@ impl Message {
         let raw_id: Vec<char> = raw_id.chars().collect();
         let mut index = (raw_id.len() - 1) as i32;
         while index >= 0 {
-            if raw_id[index as usize] != '0' {
+            if raw_id[index as usize] != '0' || raw_id[index as usize] != '\0' {
                 break;
             }
             index -= 1;
@@ -102,7 +102,7 @@ pub fn set_protocol(protocol: String) {
         }else{
             PROTOCOL.protocol = protocol;
             for _ in 0..PROTOCOL_LEN-PROTOCOL.protocol.len() {
-                PROTOCOL.protocol.push('0');
+                PROTOCOL.protocol.push('\0');
             }
         }
     }
@@ -114,7 +114,7 @@ pub fn set_id(id: &String) {
         if id.len() < ID_LEN as usize {
             let len = id.len();
             for _ in 0..(ID_LEN as usize - len) {
-                id.push('0');
+                id.push('\0');
             }
         }
         PROTOCOL.id = String::from(&id[..ID_LEN as usize]);
