@@ -3,7 +3,6 @@ use crossterm::{
     cursor,
     event::{self, Event, KeyCode, KeyEvent},
     queue,
-    style::{Colorize, Styler},
     terminal::{self, ClearType},
 };
 use std::{
@@ -349,8 +348,8 @@ fn communication(
                             if input == EXIT_COMMAND {
                                 server::send_message_to(
                                     &protocol::Message::new(
-                                        server::Code::Exit as u8,
-                                        &server::EXIT_ROOM.clone().red().bold().to_string(),
+                                        server::Code::Request as u8,
+                                        &server::EXIT_ROOM.to_string(),
                                     ),
                                     &send_addr,
                                     socket.clone(),

@@ -29,16 +29,16 @@ impl Identity {
 #[repr(u8)]
 #[derive(Debug)]
 pub enum Code {
-    None = 0,
-    Request,
+    Request = 0,
     Reply,
     Message,
     Exit,
+    None,
 }
 
 impl From<u8> for Code {
     fn from(code: u8) -> Self {
-        if code <= Code::Exit as u8 {
+        if code <= Code::None as u8 {
             unsafe { mem::transmute(code) }
         } else {
             Code::None
@@ -83,8 +83,7 @@ pub fn receive(socket: Arc<UdpSocket>, mess_que: Arc<Mutex<VecDeque<protocol::Me
 
     loop {
         if let Ok((_, addr)) = socket.recv_from(&mut buf) {
-            let message = match protocol::Message::parse(&buf)
-            {
+            let message = match protocol::Message::parse(&buf) {
                 Ok(mes) => mes,
                 Err(_) => continue,
             };
@@ -92,16 +91,16 @@ pub fn receive(socket: Arc<UdpSocket>, mess_que: Arc<Mutex<VecDeque<protocol::Me
             match code {
                 Code::Request => {
                     receive_request(&message, mess_que.clone(), addr, &mut ips, socket.clone());
-                },
+                }
                 Code::Reply => {
                     receive_reply(&message, &mut ips, addr, mess_que.clone());
-                },
+                }
                 Code::Message => {
                     receive_message(&message, mess_que.clone(), &ips, socket.clone());
-                },
+                }
                 Code::Exit => {
                     receive_exit(&message, addr, mess_que.clone(), &mut ips, socket.clone());
-                },
+                }
                 _ => {}
             };
             // buf.fill_with(Default::default);
@@ -124,7 +123,7 @@ fn receive_request(
 ) {
     if is_room_owner() {
         // Compare key
-        if is_key(message.message.clone()) {
+        if compare_string(&message.message, &get_key()) {
             // Send to this ip with join success message
             send_message_to(
                 &protocol::Message::new(Code::Reply as u8, &String::from(JOIN_SUCCESS)),
@@ -146,6 +145,8 @@ fn receive_request(
                 send_message_to_all(&join_message, ips, socket);
             }
             // Send the join message to all ip
+        } else if compare_string(&message.message, &EXIT_ROOM.to_string()) {
+            receive_exit(message, addr, mess_que, ips, socket);
         } else {
             send_message_to(
                 &protocol::Message::new(Code::Reply as u8, &String::from(JOIN_FAILED)),
@@ -156,9 +157,9 @@ fn receive_request(
     }
 }
 
-fn is_key(key: String) -> bool {
-    let mut chars = key.chars();
-    for c in get_key().chars() {
+fn compare_string(lhs: &String, rhs: &String) -> bool {
+    let mut chars = lhs.chars();
+    for c in rhs.chars() {
         if let Some(ch) = chars.next() {
             if ch != c {
                 return false;
@@ -204,13 +205,14 @@ fn receive_message(
 
 fn receive_exit(
     message: &protocol::Message,
-    addr: SocketAddr, 
+    addr: SocketAddr,
     mess_que: Arc<Mutex<VecDeque<protocol::Message>>>,
     ips: &mut Vec<SocketAddr>,
-    socket: Arc<UdpSocket>
+    socket: Arc<UdpSocket>,
 ) {
     let mut message = message.clone();
     message.code = Code::Message as u8;
+    message.message = EXIT_ROOM.clone().red().bold().to_string();
     push_to_message_queue(&message, mess_que);
     if is_room_owner() && addr != socket.local_addr().unwrap() {
         ips.remove(find_ip(&addr, &ips).unwrap());
@@ -268,7 +270,6 @@ fn is_joined_room(ip: &SocketAddr, ips: &Vec<SocketAddr>) -> bool {
     }
     false
 }
-
 
 fn find_ip(ip: &SocketAddr, ips: &Vec<SocketAddr>) -> Option<usize> {
     for index in 0..ips.len() {
