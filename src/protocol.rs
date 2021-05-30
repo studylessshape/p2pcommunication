@@ -34,7 +34,7 @@ impl Message {
     pub fn parse(mes: &[u8]) -> Result<Message, io::Error> {
         let message = Message {
             code: mes[(ID_LEN + PROTOCOL_LEN)],
-            message: Message::trim_message(&mes[(ID_LEN + PROTOCOL_LEN + CODE_LEN)..]),
+            message: String::from_utf8_lossy(&mes[(ID_LEN + PROTOCOL_LEN + CODE_LEN)..]).to_string(),
             pro_id: ProtocolID {
                 protocol: String::from_utf8_lossy(&mes[..PROTOCOL_LEN]).to_string(),
                 id: String::from_utf8_lossy(&mes[PROTOCOL_LEN..(PROTOCOL_LEN + ID_LEN)])
@@ -84,15 +84,6 @@ impl Message {
         for c in src.bytes() {
             target.push(c);
         }
-    }
-
-    fn trim_message(src: &[u8]) -> String {
-        let mut first = 0;
-        while first < src.len() && src[first] != b'\0' {
-            first += 1;
-        }
-
-        String::from_utf8_lossy(&src[..first]).to_string()
     }
 }
 

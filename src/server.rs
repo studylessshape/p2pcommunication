@@ -82,8 +82,8 @@ pub fn receive(socket: Arc<UdpSocket>, mess_que: Arc<Mutex<VecDeque<protocol::Me
     let mut ips = Vec::<SocketAddr>::new();
 
     loop {
-        if let Ok((_, addr)) = socket.recv_from(&mut buf) {
-            let message = match protocol::Message::parse(&buf) {
+        if let Ok((size, addr)) = socket.recv_from(&mut buf) {
+            let message = match protocol::Message::parse(&buf[..size]) {
                 Ok(mes) => mes,
                 Err(_) => continue,
             };
