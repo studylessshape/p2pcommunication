@@ -47,6 +47,7 @@ pub fn print_message() {
         stdout,
         cursor::MoveTo(0, MESSAGE_BUF),
         terminal::Clear(ClearType::FromCursorUp),
+        terminal::Clear(ClearType::CurrentLine),
     )
     .unwrap();
     queue!(stdout, cursor::MoveTo(0, 0)).unwrap();
