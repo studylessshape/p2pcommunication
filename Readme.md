@@ -30,10 +30,11 @@ Consider safe, I don't recommand to use `cargo install` to run this program.
 **Code**
 |code|command|
 |----|-------|
-|`0`|connect request|
-|`1`|connect reply|
-|`2`|send or receive message|
-|`3`|exit message|
+|`0`|None|
+|`1`|connect request|
+|`2`|connect reply|
+|`3`|send or receive message|
+|`4`|exit message|
 
 ### Notice
 If you want to know the base logic, this [**code**](https://gitee.com/study_less_shape/p2pcommunication/blob/ff9b187a16905669e8d24199d99edb615a8d9606/src/main.rs) is your wish and you can copy it to use.
