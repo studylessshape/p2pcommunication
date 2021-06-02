@@ -317,6 +317,12 @@ fn communication(
     };
     let mut input = String::new();
     let input_line = 22;
+    let ter_size = terminal::size().unwrap().0 as usize;
+    let input_size = if input_head.len() > ter_size {
+        0
+    }else{
+        ter_size - input_head.len()
+    };
     buf::print_input(&input_head, &input, input_line);
     buf::println(&ip_head, 24);
     loop {
@@ -355,7 +361,9 @@ fn communication(
                         input.pop();
                     }
                     KeyCode::Char(c) => {
-                        input.push(c);
+                        if input.len() < input_size {
+                            input.push(c);
+                        }
                     }
                     _ => {}
                 };

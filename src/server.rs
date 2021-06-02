@@ -123,8 +123,6 @@ fn receive_request(
 ) {
     if is_room_owner() {
         // Compare key
-        // buf::println(&format!("{}:{}", get_key().len(), get_key()), 26);
-        // if compare_string(&message.message, &get_key()) {
         if message.message == get_key() {
             // Send to this ip with join success message
             send_message_to(
@@ -146,8 +144,7 @@ fn receive_request(
                 push_to_message_queue(&join_message, mess_que);
                 send_message_to_all(&join_message, ips, socket);
             }
-            // Send the join message to all ip
-        // } else if compare_string(&message.message, &EXIT_ROOM.to_string()) {
+        // Send the join message to all ip
         } else if message.message == EXIT_ROOM.to_string() {
             receive_exit(message, addr, mess_que, ips, socket);
         } else {
