@@ -146,7 +146,7 @@ fn choose_owner() -> server::Identity {
                     break;
                 }
                 KeyCode::Char('2') => {
-                    server::set_identity(server::Identity::RooomJoiner);
+                    server::set_identity(server::Identity::RoomJoiner);
                     break;
                 }
                 _ => {}

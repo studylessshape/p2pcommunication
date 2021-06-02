@@ -13,7 +13,7 @@ use crate::prelude::*;
 pub enum Identity {
     None,
     RoomOwner,
-    RooomJoiner,
+    RoomJoiner,
 }
 
 impl Identity {
@@ -22,7 +22,7 @@ impl Identity {
     }
 
     pub fn is_room_joiner(&self) -> bool {
-        *self == Identity::RooomJoiner
+        *self == Identity::RoomJoiner
     }
 }
 
